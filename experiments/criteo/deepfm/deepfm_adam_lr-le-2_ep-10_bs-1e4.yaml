@@ -1,0 +1,53 @@
+AUTO_RESUME: true
+CUDNN:
+  BENCHMARK: true
+  DETERMINISTIC: false
+  ENABLED: true
+DEVICE: cpu
+GPUS: (0,)
+DATA_DIR: ''
+OUTPUT_DIR: '../output'
+LOG_DIR: 'log'
+WORKERS: 24
+PRINT_FREQ: 100
+SEED: 2022
+
+DATASET:
+  DATASET: criteo
+  ROOT: './data/criteo/'
+  TRAIN_SET: './data/criteo/criteo_sample.csv'
+MODEL:
+  NAME: deepfm
+  SPARSE_EMB_DIM: 32
+  DNN_UNITS: (512, 256, 128, 64)
+  PRETRAINED: ''
+LOSS:
+  USE_TARGET_WEIGHT: true
+TRAIN:
+  SAVE_MODEL: true
+  BATCH_SIZE_PER_GPU: 10000
+  SHUFFLE: true
+  PIN_MEMORY: false
+  BEGIN_EPOCH: 0
+  END_EPOCH: 3
+  OPTIMIZER: adam
+  LR_SCHEDULER: multi_step_lr
+  LR: 0.001
+  LR_FACTOR: 1.0
+  LR_STEP: (1000,1300)
+  WD: 0.0001
+  GAMMA1: 0.99
+  GAMMA2: 0.0
+  MOMENTUM: 0.9
+  NESTEROV: false
+  L2_REG_LINEAR: 1e-5
+  L2_REG_EMBEDDING: 1e-5
+  L2_REG_DNN: 1e-5
+  DNN_DROPOUT: 0.0
+TEST:
+  BATCH_SIZE_PER_GPU: 10000
+  MODEL_FILE: ''
+KD:
+  TRAIN_TYPE: normal
+  TEACHER: ''
+  ALPHA: 10.

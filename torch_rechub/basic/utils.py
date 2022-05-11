@@ -2,6 +2,8 @@ import random
 import torch
 import numpy as np
 import pandas as pd
+import pynvml
+import psutil
 from torch.utils.data import Dataset, DataLoader, random_split
 from sklearn.metrics import roc_auc_score, mean_squared_error
 
@@ -166,3 +168,33 @@ def df_to_input_dict(data):
     for key in data.keys():
         data_dict[key] = np.array(data_dict[key])
     return data_dict
+
+
+def set_seed(seed=1):
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    np.random.seed(seed)
+    random.seed(seed)
+    torch.backends.cudnn.deterministic = True
+
+
+def get_memory_info():
+    virtual_memory = psutil.virtual_memory()
+    used_memory = virtual_memory.used / 1024 / 1024 / 1024
+    free_memory = virtual_memory.free / 1024 / 1024 / 1024
+    memory_percent = virtual_memory.percent
+    memory_info = "Usage Memory: {:.2f} G, Percentage: {:.1f}%, Free Memory: {:.2f} G".format(
+        used_memory, memory_percent, free_memory)
+    return memory_info
+
+
+def get_gpu_memory_info():
+    pynvml.nvmlInit()
+    handle = pynvml.nvmlDeviceGetHandleByIndex(0)  # 这里的0是GPU id
+    meminfo = pynvml.nvmlDeviceGetMemoryInfo(handle)
+    used_memory = meminfo.used / 1024**3
+    free_memory = meminfo.free / 1024**3
+    memory_percent = meminfo.used / meminfo.total * 100
+    memory_info = "Usage GPU Memory: {:.2f} G, Percentage: {:.1f}%, Free Memory: {:.2f} G".format(
+        used_memory, memory_percent, free_memory)
+    return memory_info
