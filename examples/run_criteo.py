@@ -5,7 +5,7 @@ sys.path.append("../")
 import numpy as np
 import pandas as pd
 import torch
-from torch_rechub.models.ranking import WideDeep, DeepFM
+from torch_rechub.models.ranking import WideDeep, DeepFM, DCN, xDeepFM
 from torch_rechub.trainers import CTRTrainer
 from torch_rechub.basic.features import DenseFeature, SparseFeature
 from torch_rechub.basic.utils import DataGenerator
@@ -22,7 +22,11 @@ def convert_numeric_feature(val):
 
 
 def get_criteo_data_dict(data_path):
-    data = pd.read_csv(data_path)
+    if data_path.endswith(".gz"):  #if the raw_data is gz file:
+        data = pd.read_csv(data_path, compression="gzip")
+    else:
+        data = pd.read_csv(data_path)
+    print("data load finished")
     dense_features = [f for f in data.columns.tolist() if f[0] == "I"]
     sparse_features = [f for f in data.columns.tolist() if f[0] == "C"]
 
@@ -52,13 +56,14 @@ def main(dataset_path, model_name, epoch, learning_rate, batch_size, weight_deca
     torch.manual_seed(seed)
     dense_feas, sparse_feas, x, y = get_criteo_data_dict(dataset_path)
     dg = DataGenerator(x, y)
-    train_dataloader, val_dataloader, test_dataloader = dg.generate_dataloader(split_ratio=[0.8, 0.1], batch_size=batch_size)
+    train_dataloader, val_dataloader, test_dataloader = dg.generate_dataloader(split_ratio=[0.7, 0.1], batch_size=batch_size)
     if model_name == "widedeep":
         model = WideDeep(wide_features=dense_feas, deep_features=sparse_feas, mlp_params={"dims": [256, 128], "dropout": 0.2, "activation": "relu"})
     elif model_name == "deepfm":
         model = DeepFM(deep_features=dense_feas, fm_features=sparse_feas, mlp_params={"dims": [256, 128], "dropout": 0.2, "activation": "relu"})
-
-    ctr_trainer = CTRTrainer(model, optimizer_params={"lr": learning_rate, "weight_decay": weight_decay}, n_epoch=epoch, earlystop_patience=4, device=device, model_path=save_dir)
+    elif model_name == "dcn":
+        model = DCN(features=dense_feas + sparse_feas, n_cross_layers=3)
+    ctr_trainer = CTRTrainer(model, optimizer_params={"lr": learning_rate, "weight_decay": weight_decay}, n_epoch=epoch, earlystop_patience=10, device=device, model_path=save_dir)
     #scheduler_fn=torch.optim.lr_scheduler.StepLR,scheduler_params={"step_size": 2,"gamma": 0.8},
     ctr_trainer.fit(train_dataloader, val_dataloader)
     auc = ctr_trainer.evaluate(ctr_trainer.model, test_dataloader)
@@ -68,11 +73,11 @@ def main(dataset_path, model_name, epoch, learning_rate, batch_size, weight_deca
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset_path', default="./data/criteo/criteo_sample.csv")
+    parser.add_argument('--dataset_path', default="./data/criteo/criteo_sample_50w.csv")
     parser.add_argument('--model_name', default='widedeep')
     parser.add_argument('--epoch', type=int, default=2)  #100
     parser.add_argument('--learning_rate', type=float, default=1e-3)
-    parser.add_argument('--batch_size', type=int, default=16)  #4096
+    parser.add_argument('--batch_size', type=int, default=2048)  #4096
     parser.add_argument('--weight_decay', type=float, default=1e-3)
     parser.add_argument('--device', default='cpu')  #cuda:0
     parser.add_argument('--save_dir', default='./')
@@ -83,4 +88,5 @@ if __name__ == '__main__':
 """
 python run_criteo.py --model_name widedeep
 python run_criteo.py --model_name deepfm
+python run_criteo.py --model_name dcn
 """
