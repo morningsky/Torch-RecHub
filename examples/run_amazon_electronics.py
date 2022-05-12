@@ -4,7 +4,6 @@ sys.path.append("../")
 
 import pandas as pd
 import torch
-from sklearn.preprocessing import LabelEncoder
 from torch_rechub.models.ranking import DIN
 from torch_rechub.trainers import CTRTrainer
 from torch_rechub.basic.features import DenseFeature, SparseFeature, SequenceFeature
@@ -14,19 +13,25 @@ from torch_rechub.basic.utils import DataGenerator, create_seq_features, df_to_i
 def get_amazon_data_dict(dataset_path):
     data = pd.read_csv(dataset_path)
     print('========== Start Amazon ==========')
-    for feat in data:
-        le = LabelEncoder()
-        data[feat] = le.fit_transform(data[feat])
     n_users, n_items, n_cates = data["user_id"].max(), data["item_id"].max(), data["cate_id"].max()
 
-    features = [SparseFeature("target_item", vocab_size=n_items + 2, embed_dim=8), SparseFeature("target_cate", vocab_size=n_cates + 2, embed_dim=8)]
+    features = [SparseFeature("target_item", vocab_size=n_items + 2, embed_dim=8),
+                SparseFeature("target_cate", vocab_size=n_cates + 2, embed_dim=8),
+                SparseFeature("user_id", vocab_size=n_users + 2, embed_dim=8)]
     target_features = features
-    history_features = [SequenceFeature("history_item", vocab_size=n_items + 2, embed_dim=8, pooling="concat", shared_with="target_item"), SequenceFeature("history_cate", vocab_size=n_cates + 2, embed_dim=8, pooling="concat", shared_with="target_cate")]
+    history_features = [SequenceFeature("history_item",
+                                        vocab_size=n_items + 2,
+                                        embed_dim=8, pooling="concat",
+                                        shared_with="target_item"),
+                        SequenceFeature("history_cate",
+                                        vocab_size=n_cates + 2,
+                                        embed_dim=8, pooling="concat",
+                                        shared_with="target_cate")]
 
-    print('========== create sequence features ==========')
-    train, val, test = create_seq_features(data)
+    print('========== Create sequence features ==========')
+    train, val, test = create_seq_features(data, seq_feature_col=['item_id', 'cate_id'], drop_short=3)
 
-    print('========== generate input dict ==========')
+    print('========== Generate input dict ==========')
     train = df_to_input_dict(train)
     val = df_to_input_dict(val)
     test = df_to_input_dict(test)
@@ -59,7 +64,7 @@ def main(dataset_path, epoch, learning_rate, batch_size, weight_decay, device, s
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset_path', default="./data/amazon/amazon_sample.csv")
+    parser.add_argument('--dataset_path', default="./data/amazon-electronics/amazon_electronics_sample.csv")
     parser.add_argument('--epoch', type=int, default=2)  #100
     parser.add_argument('--learning_rate', type=float, default=1e-3)
     parser.add_argument('--batch_size', type=int, default=4096)
@@ -71,5 +76,5 @@ if __name__ == '__main__':
     args = parser.parse_args()
     main(args.dataset_path, args.epoch, args.learning_rate, args.batch_size, args.weight_decay, args.device, args.save_dir, args.seed)
 """
-python run_amazon.py
+python run_amazon_electronics.py
 """
