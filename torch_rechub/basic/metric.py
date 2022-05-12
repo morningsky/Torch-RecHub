@@ -121,7 +121,7 @@ def recall_score(user_pred):
 	return score / len(user_pred.keys())
 
 
-def topk_metrics(y_true, y_pred, k, metric_type):
+def topk_metrics(y_true, y_pred, users, k, metric_type):
 	"""choice topk metrics and compute it
 	the metrics contains 'ndcg', 'mrr', 'recall' and 'hit'
 
@@ -159,12 +159,12 @@ def log_loss(y_true, y_pred):
 
 # y_pred = np.array([0.3, 0.2, 0.5, 0.9, 0.7, 0.31, 0.8, 0.1, 0.4, 0.6])
 # y_true = np.array([1,   0,   0,   1,   0,   0,    1,   0,   0,   1])
-# users = np.array([ 2,   1,   0,   2,   1,   0,    0,   2,   1,   1])
+# users_id = np.array([ 2,   1,   0,   2,   1,   0,    0,   2,   1,   1])
 
 # print('auc: ', auc_score(y_true, y_pred))
-# print('gauc: ', gauc_score(y_true, y_pred, users))
+# print('gauc: ', gauc_score(y_true, y_pred, users_id))
 # print('log_loss: ', log_loss(y_true, y_pred))
 
 # for mt in ['ndcg', 'mrr', 'recall', 'hit','s']:
-# 	tm = topk_metrics(y_true, y_pred, 3, metric_type=mt)
+# 	tm = topk_metrics(y_true, y_pred, users_id, 3, metric_type=mt)
 # 	print(f'{mt}: {tm}')
