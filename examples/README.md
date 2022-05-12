@@ -72,17 +72,18 @@ TBD
 
 常见排序模型测试结果：
 
-| Model/Dataset | Criteo | Avazu | Amazon |
-| ------------- | ------ | ----- | ------ |
-| WideDeep      | 0.8083 |       |        |
-| DeepFM        | 0.8104 |       |        |
-| DIN           |        |       | 0.8579 |
+| Model/Dataset | Criteo | Avazu | Taobao(CTR) |
+| ------------- | ------ | ----- | ----------- |
+| WideDeep      | 0.8083 |       |             |
+| DeepFM        | 0.8104 |       |             |
+| DCN           |        |       |             |
+| xDeepFM       |        |       |             |
 
 序列模型测试结果：
 
 | Model/Dataset | Amazon | Taobao(CTR) |
 | ------------- | ------ | ----------- |
-| DIN           | 0.8579 |             |
+| DIN           | 0.8691 |             |
 |               |        |             |
 |               |        |             |
 
