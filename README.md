@@ -33,7 +33,7 @@ pip install torch-rechub
 ## 快速使用
 
 ```python
-from torch_rechub.models import WideDeep, DeepFM, DIN
+from torch_rechub.rmodels.ranking import WideDeep, DeepFM, DIN
 from torch_rechub.trainers import CTRTrainer
 from torch_rechub.basic.utils import DataGenerator
 
@@ -47,6 +47,19 @@ ctr_trainer.fit(train_dataloader, val_dataloader)
 auc = ctr_trainer.evaluate(ctr_trainer.model, test_dataloader)
 
 
+```
+
+多任务学习
+
+```python
+from torch_rechub.models.multi_task import SharedBottom, ESMM, MMOE, PLE, AITM
+from torch_rechub.trainers import MTLTrainer
+
+model = MMOE(features, task_types, n_expert=3, expert_params={"dims": [64,32,16]}, tower_params_list=[{"dims": [8]}, {"dims": [8]}])
+
+ctr_trainer = MTLTrainer(model)
+ctr_trainer.fit(train_dataloader, val_dataloader)
+auc = ctr_trainer.evaluate(ctr_trainer.model, test_dataloader)
 ```
 
 
