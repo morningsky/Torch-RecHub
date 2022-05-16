@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from .activation import activation_layer
 from .features import DenseFeature, SparseFeature, SequenceFeature
 
@@ -36,7 +37,7 @@ class EmbeddingLayer(nn.Module):
             x (dict): {feature_name: feature_value}, sequence feature value is a 2D tensor with shape:`(batch_size, seq_len)`,\
                       sparse/dense feature value is a 1D tensor with shape `(batch_size)`.
             features (list): the list of `Feature Class`. It is means the current features which we want to do embedding lookup.
-            squeeze_dim (bool): whether to squeeze dim of output (default = `True`).
+            squeeze_dim (bool): whether to squeeze dim of output (default = `False`).
         - Output: 
             - if input Dense: `(batch_size, num_features_dense)`.
             - if input Sparse: `(batch_size, num_features, embed_dim)` or  `(batch_size, num_features * embed_dim)`.
@@ -238,3 +239,75 @@ class FM(nn.Module):
         if self.reduce_sum:
             ix = torch.sum(ix, dim=1, keepdim=True)
         return 0.5 * ix
+
+
+class CIN(nn.Module):
+    """Compressed Interaction Network
+
+    Args:
+        input_dim (int): input dim of input tensor.
+        cin_size (list[int]): out channels of Conv1d.
+    
+    Shape:
+        - Input: `(batch_size, num_features, embed_dim)`
+        - Output: `(batch_size, 1)`
+    """
+
+    def __init__(self, input_dim, cin_size, split_half=True):
+        super().__init__()
+        self.num_layers = len(cin_size)
+        self.split_half = split_half
+        self.conv_layers = torch.nn.ModuleList()
+        prev_dim, fc_input_dim = input_dim, 0
+        for i in range(self.num_layers):
+            cross_layer_size = cin_size[i]
+            self.conv_layers.append(torch.nn.Conv1d(input_dim * prev_dim, cross_layer_size, 1, stride=1, dilation=1, bias=True))
+            if self.split_half and i != self.num_layers - 1:
+                cross_layer_size //= 2
+            prev_dim = cross_layer_size
+            fc_input_dim += prev_dim
+        self.fc = torch.nn.Linear(fc_input_dim, 1)
+
+    def forward(self, x):
+        xs = list()
+        x0, h = x.unsqueeze(2), x
+        for i in range(self.num_layers):
+            x = x0 * h.unsqueeze(1)
+            batch_size, f0_dim, fin_dim, embed_dim = x.shape
+            x = x.view(batch_size, f0_dim * fin_dim, embed_dim)
+            x = F.relu(self.conv_layers[i](x))
+            if self.split_half and i != self.num_layers - 1:
+                x, h = torch.split(x, x.shape[1] // 2, dim=1)
+            else:
+                h = x
+            xs.append(x)
+        return self.fc(torch.sum(torch.cat(xs, dim=1), 2))
+
+
+class CrossNetwork(nn.Module):
+    """CrossNetwork  mentioned in the DCN paper.
+
+    Args:
+        input_dim (int): input dim of input tensor
+    
+    Shape:
+        - Input: `(batch_size, *)`
+        - Output: `(batch_size, *)`
+        
+    """
+
+    def __init__(self, input_dim, num_layers):
+        super().__init__()
+        self.num_layers = num_layers
+        self.w = torch.nn.ModuleList([torch.nn.Linear(input_dim, 1, bias=False) for _ in range(num_layers)])
+        self.b = torch.nn.ParameterList([torch.nn.Parameter(torch.zeros((input_dim,))) for _ in range(num_layers)])
+
+    def forward(self, x):
+        """
+        :param x: Float tensor of size ``(batch_size, num_fields, embed_dim)``
+        """
+        x0 = x
+        for i in range(self.num_layers):
+            xw = self.w[i](x)
+            x = x0 * xw + self.b[i] + x
+        return x
