@@ -204,3 +204,7 @@ def log_loss(y_true, y_pred):
 # print(out)
 # print(ndcgs)
 
+# ground_truth, match_res = np.load("C:\\Users\\dongj\\Desktop/res.npy", allow_pickle=True)
+# print(len(ground_truth),len(match_res))
+# out = topk_metrics(y_true=ground_truth, y_pred=match_res, topKs=[50])
+# print(out)

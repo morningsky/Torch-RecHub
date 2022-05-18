@@ -6,6 +6,8 @@ import torch.nn as nn
 from ..basic.callback import EarlyStopper
 from ..basic.utils import get_loss_func, get_metric_func
 from ..models.multi_task import ESMM
+from ..basic.mtl_utils import shared_task_layers
+from ..basic.metaoptimizer import MetaBalance
 
 
 class MTLTrainer(object):
@@ -56,7 +58,14 @@ class MTLTrainer(object):
                 self.adaptive_method = "uwl"
                 self.loss_weight = nn.ParameterList(nn.Parameter(torch.zeros(1)) for _ in range(self.n_task))
                 self.model.add_module("loss weight", self.loss_weight)
-        self.optimizer = optimizer_fn(self.model.parameters(), **optimizer_params)  #default Adam optimizer
+            elif adaptive_params["method"] == "metabalance":
+                self.adaptive_method = "metabalance"
+                share_layers, task_layers = shared_task_layers(self.model)
+                self.meta_optimizer = MetaBalance(share_layers)
+                self.share_optimizer = optimizer_fn(share_layers, **optimizer_params)
+                self.task_optimizer = optimizer_fn(task_layers, **optimizer_params)
+        if self.adaptive_method != "metabalance":
+            self.optimizer = optimizer_fn(self.model.parameters(), **optimizer_params)  #default Adam optimizer
         self.scheduler = None
         if scheduler_fn is not None:
             self.scheduler = scheduler_fn(self.optimizer, **scheduler_params)
@@ -93,9 +102,16 @@ class MTLTrainer(object):
                             loss += 2 * loss_i * torch.exp(-w_i) + w_i
                 else:
                     loss = sum(loss_list) / self.n_task
-            self.model.zero_grad()
-            loss.backward()
-            self.optimizer.step()
+            if self.adaptive_method == 'metabalance':
+                self.share_optimizer.zero_grad()
+                self.task_optimizer.zero_grad()
+                self.meta_optimizer.step(loss_list)
+                self.share_optimizer.step()
+                self.task_optimizer.step()
+            else:
+                self.model.zero_grad()
+                loss.backward()
+                self.optimizer.step()
             total_loss += np.array([l.item() for l in loss_list])
         log_dict = {"task_%d:" % (i): total_loss[i] / (iter_i + 1) for i in range(self.n_task)}
         print("train loss: ", log_dict)
