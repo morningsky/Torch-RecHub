@@ -4,17 +4,19 @@ import numpy as np
 import time
 
 
-# 设置torch和numpy生成随机数的随机种子
+# set random seeds of torch and numpy
 torch.manual_seed(0)
 np.random.seed(0)
-# 如果使用了cuda，那么cuda也有随机种子，这里设置为true则得到默认算法，
-# 配合随机种子固定，如果输入相同则每次的输出是固定的
+
+# with the fixed random seed and the following settings,
+# the output is same when the input is fixed
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
 
 class MetaBalance(Optimizer):
 	def __init__(self, parameters, relax_factor=0.7, beta=0.9):
+		
 		if relax_factor < 0. or relax_factor >= 1.:
 			raise ValueError(f'Invalid relax_factor: {relax_factor}, it should be 0. <= relax_factor < 1.')
 		if beta < 0. or beta >= 1.:
@@ -46,14 +48,14 @@ class MetaBalance(Optimizer):
 								gp.norms = [torch.zeros(1).cuda()]
 							else:
 								gp.norms.append(torch.zeros(1).cuda())
-
+					# calculate the moving average
 					beta = group['beta']
 					gp.norms[idx] = gp.norms[idx] * beta + (1 - beta) * torch.norm(gp.grad)
-
+					# scale the auxiliary gradient
 					relax_factor = group['relax_factor']
-					gp.grad = gp.grad * gp.norms[0] / gp.norms[idx] * relax_factor + 
+					gp.grad = gp.grad * gp.norms[0] / (gp.norms[idx] + 1e-5) * relax_factor + 
 								gp.grad * (1. - relax_factor)
-
+					# store the gradient of each auxiliary task in state
 					if idx == 0:
 						state['sum_gradient'] = torch.zero_like(gp.data)
 						state['sum_gradient'] += gp.grad
