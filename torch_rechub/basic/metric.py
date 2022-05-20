@@ -20,12 +20,12 @@ def get_user_pred(y_true, y_pred, users):
 	"""divide the result into different group by user id
 
 	Args:
-		y_true: array, all true labels of the data
-		y_pred: array, the predicted score
-		users: array, user id 
+		y_true (array): all true labels of the data
+		y_pred (array): the predicted score
+		users (array): user id 
 
 	Return:
-		user_pred: dict, key is user id and value is the labels and scores of each user
+		user_pred (dict): {userid: values}, key is user id and value is the labels and scores of each user
 	"""
 	user_pred = {}
 	for i, u in enumerate(users):
@@ -42,10 +42,10 @@ def gauc_score(y_true, y_pred, users, weights=None):
 	"""compute GAUC
 
 	Args: 
-		y_true: array, dim(N, ), all true labels of the data
-		y_pred: array, dim(N, ), the predicted score
-		users: array, dim(N, ), user id 
-		weight: dict, it contains weights for each group. 
+		y_true (array): dim(N, ), all true labels of the data
+		y_pred (array): dim(N, ), the predicted score
+		users (array): dim(N, ), user id 
+		weight (dict): {userid: weight_value}, it contains weights for each group. 
 				if it is None, the weight is equal to the number
 				of times the user is recommended
 	Return:
@@ -101,12 +101,12 @@ def topk_metrics(y_true, y_pred, topKs=[5]):
 	the metrics contains 'ndcg', 'mrr', 'recall', 'precision' and 'hit'
 
 	Args:
-		y_true: dict, the key is user id and the value is the list that contains the items the user interacted
-		y_pred: dict, the key is user id and the value is the list that contains the items recommended  
-		topKs: list or tuple, if you want to get top5 and top10, topKs=(5, 10)
+		y_true (dict): {userid, item_ids}, the key is user id and the value is the list that contains the items the user interacted
+		y_pred (dict): {userid, item_ids}, the key is user id and the value is the list that contains the items recommended  
+		topKs (list or tuple): if you want to get top5 and top10, topKs=(5, 10)
 
 	Return:
-		results: dict, it contains five metrics, 'ndcg', 'recall', 'mrr', 'hit', 'precision'
+		results (dict): {metric_name: metric_values}, it contains five metrics, 'ndcg', 'recall', 'mrr', 'hit', 'precision'
 
 	"""
 	assert len(y_true) == len(y_pred)
@@ -185,6 +185,30 @@ def log_loss(y_true, y_pred):
 	score = y_true * np.log(y_pred) + (1 - y_true) * np.log(1 - y_pred)
 	return -score.sum() / len(y_true)
 
+
+def Coverage(y_pred, all_items, topKs=[5]):
+	"""compute the coverage
+	This method measures the diversity of the recommended items 
+	and the ability to explore the long-tailed items
+	Arg:
+		y_pred (dict): {userid, item_ids}, the key is user id and the value is the list that contains the items recommended  
+		all_items (set): all unique items
+	Return:
+		result (list[float]): the list of coverage scores
+	"""
+	result = []
+	for k in topKs:
+		rec_items = set([])
+		for u in y_pred.keys():
+			tmp_items = set(y_pred[u][:k])
+			rec_items = rec_items | tmp_items
+		score = len(rec_items) * 1. / len(all_items)
+		score = round(score, 4)
+		result.append(f'Coverage@{k}: {score}')
+	return result
+
+
+# print(Coverage({'0':[0,1,2],'1':[1,3,4]}, {0,1,2,3,4,5}, [2,3]))
 
 # pred = np.array([  0.3, 0.2, 0.5, 0.9, 0.7, 0.31, 0.8, 0.1, 0.4, 0.6])
 # label = np.array([   1,   0,   0,   1,   0,   0,    1,   0,   0,   1])
