@@ -1,3 +1,7 @@
+"""The metaoptimizer module, it provides a class MetaBalance 
+MetaBalance is used to scale the gradient and balance the gradient of each task
+Authors: Qida Dong, dongjidan@126.com
+"""
 import torch
 from torch.optim.optimizer import Optimizer
 import numpy as np
@@ -15,6 +19,15 @@ import time
 
 
 class MetaBalance(Optimizer):
+	"""MetaBalance Optimizer
+	This method is used to scale the gradient and balance the gradient of each task
+
+	Args:
+		parameters (list): the parameters of model
+		relax_factor (float, optional): the relax factor of gradient scaling (default: 0.7)
+		beta (float, optional): the coefficient of moving average (default: 0.9)
+
+	"""
 	def __init__(self, parameters, relax_factor=0.7, beta=0.9):
 		
 		if relax_factor < 0. or relax_factor >= 1.:
@@ -28,22 +41,21 @@ class MetaBalance(Optimizer):
 	def step(self, losses):
 		"""
 		Args:
-			losses: list, it contains some losses from each auxiliary task and main task
-					the first one is main task
+			losses (list[loss_func]): it contains some losses from each auxiliary task and main task
+									  the first one is main task
 		"""
 		for idx, loss in enumerate(losses):
 			loss.backward(retain_graph=True)
 			for group in self.param_groups:
 				for gp in group['params']:
 					if gp.grad is None:
-						print('breaking')
+						# print('breaking')
 						break
 					if gp.grad.is_sparse:
 						raise RuntimeError('MetaBalance does not support sparse gradients')
 					# store the result of moving average
 					state = self.state[gp]
 					if len(state) == 0:
-						zero_norm = torch.zeros
 						for i in range(len(losses)):
 							if i == 0:
 								gp.norms = [0]
