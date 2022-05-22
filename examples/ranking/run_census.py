@@ -1,6 +1,6 @@
 import sys
 
-sys.path.append(".../")
+sys.path.append("../..")
 
 import pandas as pd
 import torch
@@ -91,7 +91,7 @@ if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('--model_name', default='SharedBottom')
-    parser.add_argument('--epoch', type=int, default=100)  #100
+    parser.add_argument('--epoch', type=int, default=1)  #100
     parser.add_argument('--learning_rate', type=float, default=1e-3)
     parser.add_argument('--batch_size', type=int, default=1024)
     parser.add_argument('--weight_decay', type=float, default=1e-4)

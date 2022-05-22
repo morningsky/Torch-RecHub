@@ -1,6 +1,6 @@
 import sys
 
-sys.path.append(".../")
+sys.path.append("../..")
 
 import pandas as pd
 import torch
@@ -10,15 +10,15 @@ from torch_rechub.basic.features import DenseFeature, SparseFeature
 from torch_rechub.utils.data import DataGenerator
 
 
-def get_aliexpress_data_dict(data_path='./data/aliexpress/AliExpress_US'):
-    df_train = pd.read_csv(data_path + '/train.csv')
-    df_test = pd.read_csv(data_path + '/test.csv')
+def get_aliexpress_data_dict(data_path='./data/aliexpress'):
+    df_train = pd.read_csv(data_path + '/aliexpress_train_sample.csv')
+    df_test = pd.read_csv(data_path + '/aliexpress_test_sample.csv')
     print("train : test = %d %d" % (len(df_train), len(df_test)))
-    train_idx= df_train.shape[0]
+    train_idx = df_train.shape[0]
     data = pd.concat([df_train, df_test], axis=0)
     col_names = data.columns.values.tolist()
-    sparse_cols = [name for name in col_names if name.startswith("categorical")] #categorical
-    dense_cols = [name for name in col_names if name.startswith("numerical")] #numerical
+    sparse_cols = [name for name in col_names if name.startswith("categorical")]  #categorical
+    dense_cols = [name for name in col_names if name.startswith("numerical")]  #numerical
     print("sparse cols:%d dense cols:%d" % (len(sparse_cols), len(dense_cols)))
     label_cols = ["conversion", "click"]
 
@@ -35,13 +35,13 @@ def main(model_name, epoch, learning_rate, batch_size, weight_decay, device, sav
     features, x_train, y_train, x_test, y_test = get_aliexpress_data_dict()
     task_types = ["classification", "classification"]
     if model_name == "SharedBottom":
-        model = SharedBottom(features, task_types, bottom_params={"dims": [192,96,48]}, tower_params_list=[{"dims": [8]}, {"dims": [8]}])
+        model = SharedBottom(features, task_types, bottom_params={"dims": [192, 96, 48]}, tower_params_list=[{"dims": [8]}, {"dims": [8]}])
     elif model_name == "MMOE":
-        model = MMOE(features, task_types, n_expert=3, expert_params={"dims": [64,32,16]}, tower_params_list=[{"dims": [8]}, {"dims": [8]}])
+        model = MMOE(features, task_types, n_expert=3, expert_params={"dims": [64, 32, 16]}, tower_params_list=[{"dims": [8]}, {"dims": [8]}])
     elif model_name == "PLE":
         model = PLE(features, task_types, n_level=1, n_expert_specific=1, n_expert_shared=1, expert_params={"dims": [64, 32, 16], "output_layer": False}, tower_params_list=[{"dims": [8]}, {"dims": [8]}])
     elif model_name == "AITM":
-        model = AITM(features, n_task=2, bottom_params={"dims":[128,64,32]}, tower_params_list=[{"dims": [8]}, {"dims": [8]}])
+        model = AITM(features, n_task=2, bottom_params={"dims": [128, 64, 32]}, tower_params_list=[{"dims": [8]}, {"dims": [8]}])
 
     dg = DataGenerator(x_train, y_train)
     train_dataloader, val_dataloader, test_dataloader = dg.generate_dataloader(x_val=x_test, y_val=y_test, x_test=x_test, y_test=y_test, batch_size=batch_size)
@@ -49,7 +49,7 @@ def main(model_name, epoch, learning_rate, batch_size, weight_decay, device, sav
     #adaptive weight loss:
     #mtl_trainer = MTLTrainer(model, task_types=task_types, optimizer_params={"lr": learning_rate, "weight_decay": weight_decay}, adaptive_params={"method": "uwl"}, n_epoch=epoch, earlystop_patience=10, device=device, model_path=save_dir)
 
-    mtl_trainer = MTLTrainer(model, task_types=task_types, optimizer_params={"lr": learning_rate, "weight_decay": weight_decay}, n_epoch=epoch, earlystop_patience=3, device=device, gpus=[0,1], model_path=save_dir)
+    mtl_trainer = MTLTrainer(model, task_types=task_types, optimizer_params={"lr": learning_rate, "weight_decay": weight_decay}, n_epoch=epoch, earlystop_patience=1, device=device, model_path=save_dir)
     mtl_trainer.fit(train_dataloader, val_dataloader)
     auc = mtl_trainer.evaluate(mtl_trainer.model, test_dataloader)
     print(f'test auc: {auc}')
@@ -59,11 +59,11 @@ if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('--model_name', default='SharedBottom')
-    parser.add_argument('--epoch', type=int, default=100)  #100
+    parser.add_argument('--epoch', type=int, default=2)  #100
     parser.add_argument('--learning_rate', type=float, default=1e-3)
     parser.add_argument('--batch_size', type=int, default=10240)
     parser.add_argument('--weight_decay', type=float, default=1e-5)
-    parser.add_argument('--device', default='cuda:0')  #cuda:0
+    parser.add_argument('--device', default='cpu')  #cuda:0
     parser.add_argument('--save_dir', default='./')
     parser.add_argument('--seed', type=int, default=2022)
 

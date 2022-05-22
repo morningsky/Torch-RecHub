@@ -14,8 +14,7 @@ class MetaBalance(Optimizer):
         parameters (list): the parameters of model
         relax_factor (float, optional): the relax factor of gradient scaling (default: 0.7)
         beta (float, optional): the coefficient of moving average (default: 0.9)
-
-	"""
+		"""
 
     def __init__(self, parameters, relax_factor=0.7, beta=0.9):
 

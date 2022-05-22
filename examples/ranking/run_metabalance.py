@@ -1,6 +1,6 @@
 import sys
 
-sys.path.append(".../")
+sys.path.append("../..")
 
 import pandas as pd
 import torch
@@ -10,9 +10,9 @@ from torch_rechub.basic.features import DenseFeature, SparseFeature
 from torch_rechub.utils.data import DataGenerator
 
 
-def get_aliexpress_data_dict(data_path='./data/aliexpress/AliExpress_US'):
-    df_train = pd.read_csv(data_path + '/train.csv')
-    df_test = pd.read_csv(data_path + '/test.csv')
+def get_aliexpress_data_dict(data_path='./data/aliexpress'):
+    df_train = pd.read_csv(data_path + '/aliexpress_train_sample.csv')
+    df_test = pd.read_csv(data_path + '/aliexpress_test_sample.csv')
     print("train : test = %d %d" % (len(df_train), len(df_test)))
     train_idx = df_train.shape[0]
     data = pd.concat([df_train, df_test], axis=0)
@@ -70,9 +70,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
     main(args.model_name, args.epoch, args.learning_rate, args.batch_size, args.weight_decay, args.device, args.save_dir, args.seed)
 """
-python run_aliexpress.py --model_name SharedBottom
-python run_aliexpress.py --model_name ESMM
-python run_aliexpress.py --model_name MMOE
-python run_aliexpress.py --model_name PLE
-python run_aliexpress.py --model_name AITM
+python run_metabalance.py --model_name SharedBottom
+python run_metabalance.py --model_name ESMM
+python run_metabalance.py --model_name MMOE
+python run_metabalance.py --model_name PLE
+python run_metabalance.py --model_name AITM
 """

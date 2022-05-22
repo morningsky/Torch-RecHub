@@ -1,11 +1,11 @@
 import sys
 
-sys.path.append(".../")
+sys.path.append("../..")
 
 import numpy as np
 import pandas as pd
 import torch
-from torch_rechub.models.ranking import WideDeep, DeepFM, DCN, xDeepFM
+from torch_rechub.models.ranking import WideDeep, DeepFM, DCN
 from torch_rechub.trainers import CTRTrainer
 from torch_rechub.basic.features import DenseFeature, SparseFeature
 from torch_rechub.utils.data import DataGenerator
@@ -73,7 +73,7 @@ def main(dataset_path, model_name, epoch, learning_rate, batch_size, weight_deca
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset_path', default="./data/criteo/criteo_sample_50w.csv")
+    parser.add_argument('--dataset_path', default="./data/criteo/criteo_sample.csv")
     parser.add_argument('--model_name', default='widedeep')
     parser.add_argument('--epoch', type=int, default=2)  #100
     parser.add_argument('--learning_rate', type=float, default=1e-3)
