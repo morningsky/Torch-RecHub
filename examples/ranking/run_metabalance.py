@@ -1,24 +1,24 @@
 import sys
 
-sys.path.append("../")
+sys.path.append(".../")
 
 import pandas as pd
 import torch
 from torch_rechub.models.multi_task import SharedBottom, ESMM, MMOE, PLE, AITM
 from torch_rechub.trainers import MTLTrainer
 from torch_rechub.basic.features import DenseFeature, SparseFeature
-from torch_rechub.basic.utils import DataGenerator
+from torch_rechub.utils.data import DataGenerator
 
 
 def get_aliexpress_data_dict(data_path='./data/aliexpress/AliExpress_US'):
     df_train = pd.read_csv(data_path + '/train.csv')
     df_test = pd.read_csv(data_path + '/test.csv')
     print("train : test = %d %d" % (len(df_train), len(df_test)))
-    train_idx= df_train.shape[0]
+    train_idx = df_train.shape[0]
     data = pd.concat([df_train, df_test], axis=0)
     col_names = data.columns.values.tolist()
-    sparse_cols = [name for name in col_names if name.startswith("categorical")] #categorical
-    dense_cols = [name for name in col_names if name.startswith("numerical")] #numerical
+    sparse_cols = [name for name in col_names if name.startswith("categorical")]  #categorical
+    dense_cols = [name for name in col_names if name.startswith("numerical")]  #numerical
     print("sparse cols:%d dense cols:%d" % (len(sparse_cols), len(dense_cols)))
     label_cols = ["conversion", "click"]
 
@@ -35,13 +35,13 @@ def main(model_name, epoch, learning_rate, batch_size, weight_decay, device, sav
     features, x_train, y_train, x_test, y_test = get_aliexpress_data_dict()
     task_types = ["classification", "classification"]
     if model_name == "SharedBottom":
-        model = SharedBottom(features, task_types, bottom_params={"dims": [512,256]}, tower_params_list=[{"dims": [128,64]}, {"dims": [128,64]}])
+        model = SharedBottom(features, task_types, bottom_params={"dims": [512, 256]}, tower_params_list=[{"dims": [128, 64]}, {"dims": [128, 64]}])
     elif model_name == "MMOE":
-        model = MMOE(features, task_types, n_expert=8, expert_params={"dims": [512,256]}, tower_params_list=[{"dims": [128,64]}, {"dims": [128,64]}])
+        model = MMOE(features, task_types, n_expert=8, expert_params={"dims": [512, 256]}, tower_params_list=[{"dims": [128, 64]}, {"dims": [128, 64]}])
     elif model_name == "PLE":
-        model = PLE(features, task_types, n_level=1, n_expert_specific=4, n_expert_shared=4, expert_params={"dims": [512,256], "output_layer": False}, tower_params_list=[{"dims": [128,64]}, {"dims": [128,64]}])
+        model = PLE(features, task_types, n_level=1, n_expert_specific=4, n_expert_shared=4, expert_params={"dims": [512, 256], "output_layer": False}, tower_params_list=[{"dims": [128, 64]}, {"dims": [128, 64]}])
     elif model_name == "AITM":
-        model = AITM(features, n_task=2, bottom_params={"dims":[512,256]}, tower_params_list=[{"dims": [128,64]}, {"dims": [128,64]}])
+        model = AITM(features, n_task=2, bottom_params={"dims": [512, 256]}, tower_params_list=[{"dims": [128, 64]}, {"dims": [128, 64]}])
 
     dg = DataGenerator(x_train, y_train)
     train_dataloader, val_dataloader, test_dataloader = dg.generate_dataloader(x_val=x_test, y_val=y_test, x_test=x_test, y_test=y_test, batch_size=batch_size)

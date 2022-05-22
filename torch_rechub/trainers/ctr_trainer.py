@@ -37,7 +37,7 @@ class CTRTrainer(object):
         gpus=[],
         model_path="./",
     ):
-        self.model = model  #for uniform weights save method in one gpu or multi gpu
+        self.model = model  # for uniform weights save method in one gpu or multi gpu
         self.optimizer = optimizer_fn(self.model.parameters(), **optimizer_params)  #default optimizer
         self.scheduler = None
         if scheduler_fn is not None:

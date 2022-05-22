@@ -1,6 +1,6 @@
 import sys
 
-sys.path.append("../")
+sys.path.append(".../")
 
 import numpy as np
 import pandas as pd
@@ -8,7 +8,7 @@ import torch
 from torch_rechub.models.ranking import WideDeep, DeepFM, DCN, xDeepFM
 from torch_rechub.trainers import CTRTrainer
 from torch_rechub.basic.features import DenseFeature, SparseFeature
-from torch_rechub.basic.utils import DataGenerator
+from torch_rechub.utils.data import DataGenerator
 from tqdm import tqdm
 from sklearn.preprocessing import MinMaxScaler, LabelEncoder
 

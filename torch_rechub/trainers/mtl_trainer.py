@@ -4,10 +4,9 @@ import numpy as np
 import torch
 import torch.nn as nn
 from ..basic.callback import EarlyStopper
-from ..basic.utils import get_loss_func, get_metric_func
+from ..utils.data import get_loss_func, get_metric_func
 from ..models.multi_task import ESMM
-from ..basic.mtl_utils import shared_task_layers
-from ..basic.metaoptimizer import MetaBalance
+from ..utils.mtl import shared_task_layers, MetaBalance
 
 
 class MTLTrainer(object):

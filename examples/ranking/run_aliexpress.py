@@ -1,13 +1,13 @@
 import sys
 
-sys.path.append("../")
+sys.path.append(".../")
 
 import pandas as pd
 import torch
 from torch_rechub.models.multi_task import SharedBottom, ESMM, MMOE, PLE, AITM
 from torch_rechub.trainers import MTLTrainer
 from torch_rechub.basic.features import DenseFeature, SparseFeature
-from torch_rechub.basic.utils import DataGenerator
+from torch_rechub.utils.data import DataGenerator
 
 
 def get_aliexpress_data_dict(data_path='./data/aliexpress/AliExpress_US'):

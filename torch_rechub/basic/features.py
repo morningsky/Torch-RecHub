@@ -1,4 +1,4 @@
-from .utils import get_auto_embedding_dim
+from ..utils.data import get_auto_embedding_dim
 
 
 class SequenceFeature(object):

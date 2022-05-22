@@ -1,13 +1,13 @@
 import sys
 
-sys.path.append("../")
+sys.path.append(".../")
 
 import pandas as pd
 import torch
 from torch_rechub.models.ranking import DIN
 from torch_rechub.trainers import CTRTrainer
 from torch_rechub.basic.features import DenseFeature, SparseFeature, SequenceFeature
-from torch_rechub.basic.utils import DataGenerator, create_seq_features, df_to_input_dict
+from torch_rechub.utils.data import DataGenerator, create_seq_features, df_to_dict
 
 
 def get_amazon_data_dict(dataset_path):
@@ -32,9 +32,9 @@ def get_amazon_data_dict(dataset_path):
     train, val, test = create_seq_features(data, seq_feature_col=['item_id', 'cate_id'], drop_short=3)
 
     print('========== Generate input dict ==========')
-    train = df_to_input_dict(train)
-    val = df_to_input_dict(val)
-    test = df_to_input_dict(test)
+    train = df_to_dict(train)
+    val = df_to_dict(val)
+    test = df_to_dict(test)
 
     train_y, val_y, test_y = train["label"], val["label"], test["label"]
 

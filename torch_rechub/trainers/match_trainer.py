@@ -91,7 +91,7 @@ class MatchTrainer(object):
             else:
                 #if no val data, we save weights in the last epoch
                 save_path = os.path.join(self.model_path, "model.pth")
-                if len(self.gpus)>1:
+                if len(self.gpus) > 1:
                     torch.save(self.model.module.state_dict(), save_path)  #save best auc model
                 else:
                     torch.save(self.model.state_dict(), save_path)  #save best auc model
@@ -120,9 +120,9 @@ class MatchTrainer(object):
                 y_pred = model(x_dict)
                 predicts.extend(y_pred.tolist())
         return predicts
-    
+
     def inference_embedding(self, model, mode, data_loader, model_path):
-        #inference 
+        #inference
         assert mode in ["user_tower", "item_tower"], "Invalid mode={}.".format(mode)
         model.mode = mode
         model.load_state_dict(torch.load(os.path.join(model_path, "model.pth")))
@@ -131,7 +131,7 @@ class MatchTrainer(object):
         print(model.mode)
         predicts = []
         with torch.no_grad():
-            tk0 = tqdm.tqdm(data_loader, desc="%s inference"%(mode), smoothing=0, mininterval=1.0)
+            tk0 = tqdm.tqdm(data_loader, desc="%s inference" % (mode), smoothing=0, mininterval=1.0)
             for i, x_dict in enumerate(tk0):
                 x_dict = {k: v.to(self.device) for k, v in x_dict.items()}
                 y_pred = model(x_dict)

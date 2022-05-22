@@ -1,13 +1,13 @@
 import sys
 
-sys.path.append("../")
+sys.path.append(".../")
 
 import pandas as pd
 import torch
 from torch_rechub.models.multi_task import SharedBottom, ESMM, MMOE, PLE, AITM
 from torch_rechub.trainers import MTLTrainer
 from torch_rechub.basic.features import DenseFeature, SparseFeature
-from torch_rechub.basic.utils import DataGenerator
+from torch_rechub.utils.data import DataGenerator
 
 
 def get_census_data_dict(model_name, data_path='./data/census-income'):
@@ -73,7 +73,7 @@ def main(model_name, epoch, learning_rate, batch_size, weight_decay, device, sav
     elif model_name == "AITM":
         task_types = ["classification", "classification"]
         features, x_train, y_train, x_val, y_val, x_test, y_test = get_census_data_dict(model_name)
-        model = AITM(features, 2, bottom_params={"dims":[32,16]}, tower_params_list=[{"dims": [8]}, {"dims": [8]}])
+        model = AITM(features, 2, bottom_params={"dims": [32, 16]}, tower_params_list=[{"dims": [8]}, {"dims": [8]}])
 
     dg = DataGenerator(x_train, y_train)
     train_dataloader, val_dataloader, test_dataloader = dg.generate_dataloader(x_val=x_val, y_val=y_val, x_test=x_test, y_test=y_test, batch_size=batch_size)

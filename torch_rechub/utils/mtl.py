@@ -1,21 +1,48 @@
-"""The metaoptimizer module, it provides a class MetaBalance 
-MetaBalance is used to scale the gradient and balance the gradient of each task
-Authors: Qida Dong, dongjidan@126.com
-"""
 import torch
 from torch.optim.optimizer import Optimizer
+from ..models.multi_task import MMOE, SharedBottom, PLE, AITM
+
+
+def shared_task_layers(model):
+    """get shared layers and task layers in multi-task model
+    Authors: Qida Dong, dongjidan@126.com
+
+    Args:
+        model (torch.nn.Module): only support `[MMOE, SharedBottom, PLE, AITM]`
+
+    Returns:
+        list[torch.nn.parameter]: parameters split to shared list and task list.
+    """
+    shared_layers = list(model.embedding.parameters())
+    task_layers = None
+    if isinstance(model, SharedBottom):
+        shared_layers += list(model.bottom_mlp.parameters())
+        task_layers = list(model.towers.parameters()) + list(model.predict_layers.parameters())
+    elif isinstance(model, MMOE):
+        shared_layers += list(model.experts.parameters())
+        task_layers = list(model.towers.parameters()) + list(model.predict_layers.parameters())
+        task_layers += list(model.gates.parameters())
+    elif isinstance(model, PLE):
+        shared_layers += list(model.cgc_layers.parameters())
+        task_layers = list(model.towers.parameters()) + list(model.predict_layers.parameters())
+    elif isinstance(model, AITM):
+        shared_layers += list(model.bottoms.parameters())
+        task_layers = list(model.info_gates.parameters()) + list(model.towers.parameters()) + list(model.aits.parameters())
+    else:
+        raise ValueError(f'this model {model} is not suitable for MetaBalance Optimizer')
+    return shared_layers, task_layers
 
 
 class MetaBalance(Optimizer):
     """MetaBalance Optimizer
-       This method is used to scale the gradient and balance the gradient of each task
+    This method is used to scale the gradient and balance the gradient of each task.
+    Authors: Qida Dong, dongjidan@126.com
 
     Args:
         parameters (list): the parameters of model
         relax_factor (float, optional): the relax factor of gradient scaling (default: 0.7)
         beta (float, optional): the coefficient of moving average (default: 0.9)
-
-	"""
+    """
 
     def __init__(self, parameters, relax_factor=0.7, beta=0.9):
 
@@ -28,14 +55,6 @@ class MetaBalance(Optimizer):
 
     @torch.no_grad()
     def step(self, losses):
-        """_summary_
-        Args:
-            losses (_type_): _description_
-
-        Raises:
-            RuntimeError: _description_
-        """
-
         for idx, loss in enumerate(losses):
             loss.backward(retain_graph=True)
             for group in self.param_groups:
