@@ -85,7 +85,8 @@ class CTRTrainer(object):
                 if self.early_stopper.stop_training(auc, self.model.state_dict()):
                     print(f'validation: best auc: {self.early_stopper.best_auc}')
                     self.model.load_state_dict(self.early_stopper.best_weights)
-                    torch.save(self.early_stopper.best_weights, os.path.join(self.model_path, "model.pth"))  #save best auc model
+                    torch.save(self.early_stopper.best_weights, os.path.join(self.model_path,
+                                                                             "model.pth"))  #save best auc model
                     break
 
     def evaluate(self, model, data_loader):

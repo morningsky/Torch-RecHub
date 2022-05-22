@@ -19,14 +19,14 @@ class DCN(torch.nn.Module):
         mlp_params (dict): the params of the last MLP module, keys include:`{"dims":list, "activation":str, "dropout":float, "output_layer":bool`}
     """
 
-    def __init__(self, features, n_cross_layers, mlp_params={"dims": [256, 128], "output_layer": False}):
+    def __init__(self, features, n_cross_layers, mlp_params):
         super().__init__()
         self.features = features
         self.dims = sum([fea.embed_dim for fea in features])
 
         self.embedding = EmbeddingLayer(features)
         self.cn = CrossNetwork(self.dims, n_cross_layers)
-        self.mlp = MLP(self.dims, **mlp_params)
+        self.mlp = MLP(self.dims, output_layer=False, **mlp_params)
         self.linear = LR(self.dims + mlp_params["dims"][-1])
 
     def forward(self, x):

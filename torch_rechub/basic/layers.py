@@ -188,17 +188,17 @@ class MLP(nn.Module):
 
     Args:
         input dim (int): input size of the first Linear Layer.
-        dims (list): output size of Linear Layer.
+        output_layer (bool): whether this MLP module is the output layer. If `True`, then append one Linear(*,1) module. 
+        dims (list): output size of Linear Layer (default=[]).
         dropout (float): probability of an element to be zeroed (default = 0.5).
         activation (str): the activation function, support `[sigmoid, relu, prelu, dice, softmax]` (default='relu').
-        output_layer (bool): whether this MLP module is the output layer. If `True`, then append one Linear(*,1) module. 
 
     Shape:
         - Input: `(batch_size, input_dim)`
         - Output: `(batch_size, 1)` or `(batch_size, dims[-1])`
     """
 
-    def __init__(self, input_dim, dims, dropout=0, activation="relu", output_layer=True):
+    def __init__(self, input_dim, output_layer=True, dims=[], dropout=0, activation="relu"):
         super().__init__()
         layers = list()
         for i_dim in dims:

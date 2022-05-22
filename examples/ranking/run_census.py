@@ -69,7 +69,7 @@ def main(model_name, epoch, learning_rate, batch_size, weight_decay, device, sav
     elif model_name == "PLE":
         features, x_train, y_train, x_val, y_val, x_test, y_test = get_census_data_dict(model_name)
         task_types = ["classification", "classification"]
-        model = PLE(features, task_types, n_level=1, n_expert_specific=2, n_expert_shared=1, expert_params={"dims": [16], "output_layer": False}, tower_params_list=[{"dims": [8]}, {"dims": [8]}])
+        model = PLE(features, task_types, n_level=1, n_expert_specific=2, n_expert_shared=1, expert_params={"dims": [16]}, tower_params_list=[{"dims": [8]}, {"dims": [8]}])
     elif model_name == "AITM":
         task_types = ["classification", "classification"]
         features, x_train, y_train, x_val, y_val, x_test, y_test = get_census_data_dict(model_name)

@@ -41,13 +41,21 @@ class DataGenerator(object):
         self.dataset = TorchDataset(x, y)
         self.length = len(self.dataset)
 
-    def generate_dataloader(self, x_val=None, y_val=None, x_test=None, y_test=None, split_ratio=None, batch_size=16, num_workers=8):
+    def generate_dataloader(self,
+                            x_val=None,
+                            y_val=None,
+                            x_test=None,
+                            y_test=None,
+                            split_ratio=None,
+                            batch_size=16,
+                            num_workers=8):
         if split_ratio != None:
             train_length = int(self.length * split_ratio[0])
             val_length = int(self.length * split_ratio[1])
             test_length = self.length - train_length - val_length
             print("the samples of train : val : test are  %d : %d : %d" % (train_length, val_length, test_length))
-            train_dataset, val_dataset, test_dataset = random_split(self.dataset, (train_length, val_length, test_length))
+            train_dataset, val_dataset, test_dataset = random_split(self.dataset,
+                                                                    (train_length, val_length, test_length))
         else:
             train_dataset = self.dataset
             val_dataset = TorchDataset(x_val, y_val)
@@ -116,7 +124,8 @@ def create_seq_features(data, seq_feature_col=['item_id', 'cate_id'], max_len=50
     item_cate_map = data[['item_id', 'cate_id']]
     item2cate_dict = item_cate_map.set_index(['item_id'])['cate_id'].to_dict()
 
-    data = data.sort_values(['user_id', 'time']).groupby('user_id').agg(click_hist_list=('item_id', list), cate_hist_hist=('cate_id', list)).reset_index()
+    data = data.sort_values(['user_id', 'time']).groupby('user_id').agg(click_hist_list=('item_id', list),
+                                                                        cate_hist_hist=('cate_id', list)).reset_index()
 
     # Sliding window to construct negative samples
     train_data, val_data, test_data = [], [], []

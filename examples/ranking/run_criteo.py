@@ -62,7 +62,7 @@ def main(dataset_path, model_name, epoch, learning_rate, batch_size, weight_deca
     elif model_name == "deepfm":
         model = DeepFM(deep_features=dense_feas, fm_features=sparse_feas, mlp_params={"dims": [256, 128], "dropout": 0.2, "activation": "relu"})
     elif model_name == "dcn":
-        model = DCN(features=dense_feas + sparse_feas, n_cross_layers=3)
+        model = DCN(features=dense_feas + sparse_feas, n_cross_layers=3, mlp_params={"dims": [256, 128]})
     ctr_trainer = CTRTrainer(model, optimizer_params={"lr": learning_rate, "weight_decay": weight_decay}, n_epoch=epoch, earlystop_patience=10, device=device, model_path=save_dir)
     #scheduler_fn=torch.optim.lr_scheduler.StepLR,scheduler_params={"step_size": 2,"gamma": 0.8},
     ctr_trainer.fit(train_dataloader, val_dataloader)

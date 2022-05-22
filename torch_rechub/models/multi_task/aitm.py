@@ -20,7 +20,7 @@ class AITM(nn.Module):
     Args:
         features (list[Feature Class]): training by the whole module.
         n_task (int): the number of binary classificatioon task.
-        bottom_params (dict): the params of all the botwer expert module, keys include:`{"dims":list, "activation":str, "dropout":float}, keep `{"output_layer":False}`.
+        bottom_params (dict): the params of all the botwer expert module, keys include:`{"dims":list, "activation":str, "dropout":float}`.
         tower_params_list (list): the list of tower params dict, the keys same as expert_params.
     """
 
@@ -30,27 +30,30 @@ class AITM(nn.Module):
         self.n_task = n_task
         self.input_dims = sum([fea.embed_dim for fea in features])
         self.embedding = EmbeddingLayer(features)
-        
-        self.bottoms = nn.ModuleList(MLP(self.input_dims, **{**bottom_params, **{"output_layer": False}}) for i in range(self.n_task))
+
+        self.bottoms = nn.ModuleList(
+            MLP(self.input_dims, output_layer=False, **bottom_params) for i in range(self.n_task))
         self.towers = nn.ModuleList(MLP(bottom_params["dims"][-1], **tower_params_list[i]) for i in range(self.n_task))
 
-        self.info_gates = nn.ModuleList(MLP(bottom_params["dims"][-1], **{"dims":[bottom_params["dims"][-1]], "output_layer": False}) for i in range(self.n_task-1))
-        self.aits = nn.ModuleList(AttentionLayer(bottom_params["dims"][-1]) for _ in range(self.n_task-1))
-        
+        self.info_gates = nn.ModuleList(
+            MLP(bottom_params["dims"][-1], output_layer=False, dims=[bottom_params["dims"][-1]])
+            for i in range(self.n_task - 1))
+        self.aits = nn.ModuleList(AttentionLayer(bottom_params["dims"][-1]) for _ in range(self.n_task - 1))
 
     def forward(self, x):
-        embed_x = self.embedding(x, self.features, squeeze_dim=True) #[batch_size, *]
-        input_towers = [self.bottoms[i](embed_x) for i in range(self.n_task)] #[i]:[batch_size, bottom_dims[-1]]
-        for i in range(1, self.n_task): #for task 1:n-1
-            info = self.info_gates[i-1](input_towers[i-1]).unsqueeze(1) #[batch_size,1,bottom_dims[-1]]
-            ait_input = torch.cat([input_towers[i-1].unsqueeze(1), info], dim=1) #[batch_size, 2, bottom_dims[-1]]
-            input_towers[i] = self.aits[i-1](ait_input)
-        
+        embed_x = self.embedding(x, self.features, squeeze_dim=True)  #[batch_size, *]
+        input_towers = [self.bottoms[i](embed_x) for i in range(self.n_task)]  #[i]:[batch_size, bottom_dims[-1]]
+        for i in range(1, self.n_task):  #for task 1:n-1
+            info = self.info_gates[i - 1](input_towers[i - 1]).unsqueeze(1)  #[batch_size,1,bottom_dims[-1]]
+            ait_input = torch.cat([input_towers[i - 1].unsqueeze(1), info], dim=1)  #[batch_size, 2, bottom_dims[-1]]
+            input_towers[i] = self.aits[i - 1](ait_input)
+
         ys = []
         for input_tower, tower in zip(input_towers, self.towers):
             y = tower(input_tower)
             ys.append(torch.sigmoid(y))
         return torch.cat(ys, dim=1)
+
 
 class AttentionLayer(nn.Module):
     """attention for info tranfer
@@ -62,6 +65,7 @@ class AttentionLayer(nn.Module):
         Input: (batch_size, 2, dim)
         Output: (batch_size, dim)
     """
+
     def __init__(self, dim=32):
         super().__init__()
         self.dim = dim

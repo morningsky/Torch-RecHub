@@ -24,7 +24,7 @@ class DSSM(torch.nn.Module):
         item_params (dict): the params of the Item Tower module, keys include:`{"dims":list, "activation":str, "dropout":float, "output_layer":bool`}.
     """
 
-    def __init__(self, user_features, item_features, sim_func="cosine", temperature=1.0, user_params={"dims":[32,16],"output_layer":False}, item_params={"dims":[32,16],"output_layer":False}):
+    def __init__(self, user_features, item_features, user_params, item_params, sim_func="cosine", temperature=1.0):
         super().__init__()
         self.user_features = user_features
         self.item_features = item_features
@@ -34,8 +34,8 @@ class DSSM(torch.nn.Module):
         self.item_dims = sum([fea.embed_dim for fea in item_features])
 
         self.embedding = EmbeddingLayer(user_features + item_features)
-        self.user_mlp = MLP(self.user_dims, **user_params)
-        self.item_mlp = MLP(self.item_dims, **item_params)
+        self.user_mlp = MLP(self.user_dims, output_layer=False, **user_params)
+        self.item_mlp = MLP(self.item_dims, output_layer=False, **item_params)
         self.mode = None
 
     def forward(self, x):
@@ -45,25 +45,25 @@ class DSSM(torch.nn.Module):
             return user_embedding
         if self.mode == "item_tower":
             return item_embedding
-        if self.sim_func=="cosine":
+        if self.sim_func == "cosine":
             y = torch.cosine_similarity(user_embedding, item_embedding, dim=1)
-            y = y/self.temperature
-        elif self.sim_func=="dot":
+            y = y / self.temperature
+        elif self.sim_func == "dot":
             y = torch.mul(user_embedding, item_embedding).sum(dim=1)
         else:
-            raise ValueError("similarity function only support %s, but got %s"%(["cosine", "dot"], self.sim_func))
+            raise ValueError("similarity function only support %s, but got %s" % (["cosine", "dot"], self.sim_func))
         return torch.sigmoid(y)
-    
+
     def user_tower(self, x):
         if self.mode == "item_tower":
             return None
         input_user = self.embedding(x, self.user_features, squeeze_dim=True)  #[batch_size, num_features*deep_dims]
-        user_embedding = self.user_mlp(input_user) #[batch_size, user_params["dims"][-1]]
+        user_embedding = self.user_mlp(input_user)  #[batch_size, user_params["dims"][-1]]
         return user_embedding
-    
+
     def item_tower(self, x):
         if self.mode == "user_tower":
             return None
         input_item = self.embedding(x, self.item_features, squeeze_dim=True)  #[batch_size, num_features*embed_dim]
-        item_embedding = self.item_mlp(input_item) #[batch_size, item_params["dims"][-1]]
+        item_embedding = self.item_mlp(input_item)  #[batch_size, item_params["dims"][-1]]
         return item_embedding
