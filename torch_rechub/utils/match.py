@@ -5,6 +5,18 @@ import copy
 import random
 from collections import OrderedDict, Counter
 from annoy import AnnoyIndex
+from .data import pad_sequences, df_to_dict
+
+
+def gen_model_input(df, user_profile, user_col, item_profile, item_col, seq_max_len):
+    #merge user_profile and item_profile, pad history seuence feature
+    df = pd.merge(df, user_profile, on=user_col)
+    df = pd.merge(df, item_profile, on=item_col)
+    for col in df.columns.to_list():
+        if col.startswith("hist_"):
+            df[col] = pad_sequences(df[col], maxlen=seq_max_len, value=0).tolist()
+    input_dict = df_to_dict(df)
+    return input_dict
 
 
 def negative_sample(items_cnt_order, ratio, method_id=0):

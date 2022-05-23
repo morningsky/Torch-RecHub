@@ -124,7 +124,7 @@ class MatchTrainer(object):
 
     def inference_embedding(self, model, mode, data_loader, model_path):
         #inference
-        assert mode in ["user_tower", "item_tower"], "Invalid mode={}.".format(mode)
+        assert mode in ["user", "item"], "Invalid mode={}.".format(mode)
         model.mode = mode
         model.load_state_dict(torch.load(os.path.join(model_path, "model.pth")))
         model = model.to(self.device)

@@ -10,7 +10,7 @@ from torch.utils.data import Dataset, DataLoader, random_split
 class TorchDataset(Dataset):
 
     def __init__(self, x, y):
-        super(TorchDataset, self).__init__()
+        super().__init__()
         self.x = x
         self.y = y
 
@@ -34,10 +34,25 @@ class PredictDataset(Dataset):
         return len(self.x[list(self.x.keys())[0]])
 
 
+class MatchDataGenerator(object):
+
+    def __init__(self, x, y):
+        super().__init__()
+        self.dataset = TorchDataset(x, y)
+
+    def generate_dataloader(self, x_test_user, x_all_item, batch_size, num_workers=8):
+        train_dataloader = DataLoader(self.dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
+        test_dataset = PredictDataset(x_test_user)
+        test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
+        item_dataset = PredictDataset(x_all_item)
+        item_dataloader = DataLoader(item_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
+        return train_dataloader, test_dataloader, item_dataloader
+
+
 class DataGenerator(object):
 
     def __init__(self, x, y):
-        super(DataGenerator, self).__init__()
+        super().__init__()
         self.dataset = TorchDataset(x, y)
         self.length = len(self.dataset)
 

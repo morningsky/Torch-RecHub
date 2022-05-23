@@ -41,28 +41,28 @@ class DSSM(torch.nn.Module):
     def forward(self, x):
         user_embedding = self.user_tower(x)
         item_embedding = self.item_tower(x)
-        if self.mode == "user_tower":
+        if self.mode == "user":
             return user_embedding
-        if self.mode == "item_tower":
+        if self.mode == "item":
             return item_embedding
         if self.sim_func == "cosine":
             y = torch.cosine_similarity(user_embedding, item_embedding, dim=1)
-            y = y / self.temperature
         elif self.sim_func == "dot":
             y = torch.mul(user_embedding, item_embedding).sum(dim=1)
         else:
             raise ValueError("similarity function only support %s, but got %s" % (["cosine", "dot"], self.sim_func))
+        y = y / self.temperature
         return torch.sigmoid(y)
 
     def user_tower(self, x):
-        if self.mode == "item_tower":
+        if self.mode == "item":
             return None
         input_user = self.embedding(x, self.user_features, squeeze_dim=True)  #[batch_size, num_features*deep_dims]
         user_embedding = self.user_mlp(input_user)  #[batch_size, user_params["dims"][-1]]
         return user_embedding
 
     def item_tower(self, x):
-        if self.mode == "user_tower":
+        if self.mode == "user":
             return None
         input_item = self.embedding(x, self.item_features, squeeze_dim=True)  #[batch_size, num_features*embed_dim]
         item_embedding = self.item_mlp(input_item)  #[batch_size, item_params["dims"][-1]]
