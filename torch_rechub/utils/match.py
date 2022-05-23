@@ -7,13 +7,13 @@ from collections import OrderedDict, Counter
 from annoy import AnnoyIndex
 
 
-def negative_sample(items_cnt_order, items_set, ratio, method_id=0):
+def negative_sample(items_cnt_order, ratio, method_id=0):
     """Negative Sample method for matching model
     reference: https://github.com/wangzhegeek/DSSM-Lookalike/blob/master/utils.py
     update more method and redesign this function.
 
     Args:
-        items (list): item list of raw data
+        items_cnt_order (dict): the item count dict, the keys(item) sorted by value(count) in reverse order.
         ratio (int): negative sample ratio, >= 1
         method_id (int, optional): 
         `{
@@ -26,6 +26,7 @@ def negative_sample(items_cnt_order, items_set, ratio, method_id=0):
     Returns:
         list: sampled negative item list
     """
+    items_set = [item for item, count in items_cnt_order.items()]
     if not isinstance(ratio, int) or ratio < 1:
         raise ValueError("ratio means neg/pos, it should be greater than or equal to 1")
     if method_id == 0:
@@ -87,6 +88,10 @@ def generate_seq_feature_match(data,
     data.sort_values(time_col, inplace=True)  #sort by time from old to new
     train_set, test_set = [], []
     n_cold_user = 0
+
+    items_cnt = Counter(data[item_col].tolist())
+    items_set = list(items_cnt.keys())  #unique items
+    items_cnt_order = OrderedDict(sorted((items_cnt.items()), key=lambda x: x[1], reverse=True))  #item_id:item count
     for uid, hist in tqdm.tqdm(data.groupby(user_col)):
         pos_list = hist[item_col].tolist()
         if len(pos_list) < min_item:  #drop this user when his pos items < min_item
@@ -94,14 +99,7 @@ def generate_seq_feature_match(data,
             continue
 
         if neg_ratio > 0:
-            items_cnt = Counter(data[item_col].tolist())
-            items_set = list(items_cnt.keys())  #unique items
-            items_cnt_order = OrderedDict(sorted((items_cnt.items()), key=lambda x: x[1],
-                                                 reverse=True))  #item_id:item count
-            neg_list = negative_sample(items_cnt_order,
-                                       items_set,
-                                       ratio=len(pos_list) * neg_ratio,
-                                       method_id=sample_method)
+            neg_list = negative_sample(items_cnt_order, ratio=len(pos_list) * neg_ratio, method_id=sample_method)
 
         for i in range(1, len(pos_list)):
             hist_item = pos_list[:i]
