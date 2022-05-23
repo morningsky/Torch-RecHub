@@ -55,10 +55,7 @@ def negative_sample(items_cnt_order, ratio, method_id=0):
         p_value = np.array(list(p_sel.values())) / sum(p_sel.values())
         neg_items = np.random.choice(items_set, size=ratio, replace=True, p=p_value)
     elif method_id == 3:
-        p_sel = {
-            item: (np.log(k + 2) - np.log(k + 1) / np.log(len(items_cnt_order) + 1))
-            for item, k in items_cnt_order.items()
-        }
+        p_sel = {item: (np.log(k + 2) - np.log(k + 1) / np.log(len(items_cnt_order) + 1)) for item, k in items_cnt_order.items()}
         p_value = np.array(list(p_sel.values())) / sum(p_sel.values())
         neg_items = np.random.choice(items_set, size=ratio, replace=False, p=p_value)
     else:
@@ -102,7 +99,6 @@ def generate_seq_feature_match(data,
     n_cold_user = 0
 
     items_cnt = Counter(data[item_col].tolist())
-    items_set = list(items_cnt.keys())  #unique items
     items_cnt_order = OrderedDict(sorted((items_cnt.items()), key=lambda x: x[1], reverse=True))  #item_id:item count
     for uid, hist in tqdm.tqdm(data.groupby(user_col)):
         pos_list = hist[item_col].tolist()
@@ -127,19 +123,19 @@ def generate_seq_feature_match(data,
                         sample[1] = neg_list[i * neg_ratio + negi]
                         train_set.append(sample + [0])
                 elif mode == 1:  #pair-wise, the last col is neg_col, include one negative item
-                    last_col = "neg_sample"
+                    last_col = "neg_items"
                     for negi in range(neg_ratio):
                         sample_copy = copy.deepcopy(sample)
                         sample_copy.append(neg_list[i * neg_ratio + negi])
                         train_set.append(sample_copy)
                 elif mode == 2:  #list-wise, the last col is neg_col, include neg_ratio negative items
-                    last_col = "neg_sample"
+                    last_col = "neg_items"
                     sample.append(neg_list[i * neg_ratio:(i + 1) * neg_ratio])
                     train_set.append(sample)
                 else:
                     raise ValueError("mode should in (0,1,2)")
             else:
-                test_set.append(sample + [1])  #Note: if mode=1/2, the label col is useless.
+                test_set.append(sample + [1])  #Note: if mode=1 or 2, the label col is useless.
 
     random.shuffle(train_set)
     random.shuffle(test_set)
@@ -149,11 +145,9 @@ def generate_seq_feature_match(data,
 
     attr_hist_col = ["hist_" + col for col in item_attribute_cols]
     df_train = pd.DataFrame(train_set,
-                            columns=[user_col, item_col, "hist_" + item_col, "histlen_" + item_col] + attr_hist_col +
-                            [last_col])
+                            columns=[user_col, item_col, "hist_" + item_col, "histlen_" + item_col] + attr_hist_col + [last_col])
     df_test = pd.DataFrame(test_set,
-                           columns=[user_col, item_col, "hist_" + item_col, "histlen_" + item_col] + attr_hist_col +
-                           [last_col])
+                           columns=[user_col, item_col, "hist_" + item_col, "histlen_" + item_col] + attr_hist_col + [last_col])
 
     return df_train, df_test
 

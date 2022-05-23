@@ -54,7 +54,7 @@ class EmbeddingLayer(nn.Module):
         for fea in features:
             if fea.name in self.embed_dict:  #exist
                 continue
-            if isinstance(fea, SparseFeature):
+            if isinstance(fea, SparseFeature) and fea.shared_with == None:
                 self.embed_dict[fea.name] = nn.Embedding(fea.vocab_size, fea.embed_dim)
             elif isinstance(fea, SequenceFeature) and fea.shared_with == None:
                 self.embed_dict[fea.name] = nn.Embedding(fea.vocab_size, fea.embed_dim)
@@ -68,7 +68,10 @@ class EmbeddingLayer(nn.Module):
         sparse_exists, dense_exists = False, False
         for fea in features:
             if isinstance(fea, SparseFeature):
-                sparse_emb.append(self.embed_dict[fea.name](x[fea.name].long()).unsqueeze(1))
+                if fea.shared_with == None:
+                    sparse_emb.append(self.embed_dict[fea.name](x[fea.name].long()).unsqueeze(1))
+                else:
+                    sparse_emb.append(self.embed_dict[fea.shared_with](x[fea.name].long()).unsqueeze(1))
             elif isinstance(fea, SequenceFeature):
                 if fea.pooling == "sum":
                     pooling_layer = SumPooling()
@@ -77,11 +80,13 @@ class EmbeddingLayer(nn.Module):
                 elif fea.pooling == "concat":
                     pooling_layer = ConcatPooling()
                 else:
-                    raise ValueError("Sequence pooling method supports only pooling in %s, got %s." % (["sum", "mean"], fea.pooling))
+                    raise ValueError("Sequence pooling method supports only pooling in %s, got %s." %
+                                     (["sum", "mean"], fea.pooling))
                 if fea.shared_with == None:
                     sparse_emb.append(pooling_layer(self.embed_dict[fea.name](x[fea.name].long())).unsqueeze(1))
                 else:
-                    sparse_emb.append(pooling_layer(self.embed_dict[fea.shared_with](x[fea.name].long())).unsqueeze(1))  #shared specific sparse feature embedding
+                    sparse_emb.append(pooling_layer(self.embed_dict[fea.shared_with](
+                        x[fea.name].long())).unsqueeze(1))  #shared specific sparse feature embedding
             else:
                 dense_values.append(x[fea.name].float().unsqueeze(1))  #.unsqueeze(1).unsqueeze(1)
 
@@ -98,14 +103,17 @@ class EmbeddingLayer(nn.Module):
             elif not dense_exists and sparse_exists:
                 return sparse_emb.flatten(start_dim=1)  #squeeze dim to : [batch_size, num_features*embed_dim]
             elif dense_exists and sparse_exists:
-                return torch.cat((sparse_emb.flatten(start_dim=1), dense_values), dim=1)  #concat dense value with sparse embedding
+                return torch.cat((sparse_emb.flatten(start_dim=1), dense_values),
+                                 dim=1)  #concat dense value with sparse embedding
             else:
                 raise ValueError("The input features can note be empty")
         else:
             if sparse_exists:
                 return sparse_emb  #[batch_size, num_features, embed_dim]
             else:
-                raise ValueError("If keep the original shape:[batch_size, num_features, embed_dim], expected %s in feature list, got %s" % ("SparseFeatures", features))
+                raise ValueError(
+                    "If keep the original shape:[batch_size, num_features, embed_dim], expected %s in feature list, got %s" %
+                    ("SparseFeatures", features))
 
 
 class LR(nn.Module):

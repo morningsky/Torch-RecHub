@@ -5,19 +5,18 @@ sys.path.append("../..")
 import os
 import numpy as np
 import pandas as pd
-import collections
 import torch
 
 from sklearn.preprocessing import MinMaxScaler, LabelEncoder
 from torch_rechub.models.matching import DSSM
 from torch_rechub.trainers import MatchTrainer
 from torch_rechub.basic.features import DenseFeature, SparseFeature, SequenceFeature
-from torch_rechub.utils.match import Annoy, generate_seq_feature_match, gen_model_input
+from torch_rechub.utils.match import generate_seq_feature_match, gen_model_input
 from torch_rechub.utils.data import df_to_dict, MatchDataGenerator
-from torch_rechub.basic.metric import topk_metrics
+from movielens_utils import match_evaluation
 
 
-def get_movielens_data(data_path, load_cache=False):
+def get_movielens_data(data_path, load_cache=True):
     data = pd.read_csv(data_path)
     data["cate_id"] = data["genres"].apply(lambda x: x.split("|")[0])
     sparse_features = ['user_id', 'movie_id', 'gender', 'age', 'occupation', 'zip', "cate_id"]
@@ -29,11 +28,9 @@ def get_movielens_data(data_path, load_cache=False):
         data[feature] = lbe.fit_transform(data[feature]) + 1
         feature_max_idx[feature] = data[feature].max() + 1
         if feature == user_col:
-            user_map = {encode_id + 1: raw_id for encode_id, raw_id in enumerate(lbe.classes_)
-                       }  #encode user id: raw user id
+            user_map = {encode_id + 1: raw_id for encode_id, raw_id in enumerate(lbe.classes_)}  #encode user id: raw user id
         if feature == item_col:
-            item_map = {encode_id + 1: raw_id for encode_id, raw_id in enumerate(lbe.classes_)
-                       }  #encode item id: raw item id
+            item_map = {encode_id + 1: raw_id for encode_id, raw_id in enumerate(lbe.classes_)}  #encode item id: raw item id
     np.save("./data/ml-1m/saved/raw_id_maps.npy", (user_map, item_map))
 
     user_profile = data[["user_id", "gender", "age", "occupation", "zip"]].drop_duplicates('user_id')
@@ -47,7 +44,7 @@ def get_movielens_data(data_path, load_cache=False):
                                                        item_col,
                                                        time_col="timestamp",
                                                        item_attribute_cols=[],
-                                                       sample_method=0,
+                                                       sample_method=1,
                                                        mode=0,
                                                        neg_ratio=3,
                                                        min_item=0)
@@ -61,8 +58,7 @@ def get_movielens_data(data_path, load_cache=False):
     item_cols = ['movie_id', "cate_id"]
 
     user_features = [
-        SparseFeature(feature_name, vocab_size=feature_max_idx[feature_name], embed_dim=16)
-        for feature_name in user_cols
+        SparseFeature(feature_name, vocab_size=feature_max_idx[feature_name], embed_dim=16) for feature_name in user_cols
     ]
     user_features += [
         SequenceFeature("hist_movie_id",
@@ -73,8 +69,7 @@ def get_movielens_data(data_path, load_cache=False):
     ]
 
     item_features = [
-        SparseFeature(feature_name, vocab_size=feature_max_idx[feature_name], embed_dim=16)
-        for feature_name in item_cols
+        SparseFeature(feature_name, vocab_size=feature_max_idx[feature_name], embed_dim=16) for feature_name in item_cols
     ]
 
     all_item = df_to_dict(item_profile)
@@ -93,7 +88,7 @@ def main(dataset_path, model_name, epoch, learning_rate, batch_size, weight_deca
         model = DSSM(user_features,
                      item_features,
                      sim_func="cosine",
-                     temperature=0.05,
+                     temperature=0.02,
                      user_params={
                          "dims": [256, 128, 64, 32],
                      },
@@ -102,6 +97,7 @@ def main(dataset_path, model_name, epoch, learning_rate, batch_size, weight_deca
                      })
 
     trainer = MatchTrainer(model,
+                           mode=0,
                            optimizer_params={
                                "lr": learning_rate,
                                "weight_decay": weight_decay
@@ -117,36 +113,9 @@ def main(dataset_path, model_name, epoch, learning_rate, batch_size, weight_deca
     print("inference embedding")
     user_embedding = trainer.inference_embedding(model=model, mode="user", data_loader=test_dl, model_path=save_dir)
     item_embedding = trainer.inference_embedding(model=model, mode="item", data_loader=item_dl, model_path=save_dir)
-    torch.save(user_embedding.data.cpu(), save_dir + "user_embedding.pth")
-    torch.save(item_embedding.data.cpu(), save_dir + "item_embedding.pth")
-
-    print("evaluate embedding matching on test data")
-    annoy = Annoy(n_trees=10)
-    annoy.fit(item_embedding)
-
-    #for each user of test dataset, get ann search topk result
-    print("matching for topk")
-    user_map, item_map = np.load("./data/ml-1m/saved/raw_id_maps.npy", allow_pickle=True)
-    match_res = collections.defaultdict(dict)
-    topk = 100
-    for user_id, user_emb in zip(test_user["user_id"], user_embedding):
-        items_idx, items_scores = annoy.query(v=user_emb, n=topk)  #the index of topk match items
-        match_res[user_map[user_id]] = all_item["movie_id"][items_idx]
-
-    #get ground truth
-    print("generate ground truth")
-    user_col = "user_id"
-    item_col = "movie_id"
-
-    data = pd.DataFrame({"user_id": test_user["user_id"], "movie_id": test_user["movie_id"]})
-    data[user_col] = data[user_col].map(user_map)
-    data[item_col] = data[item_col].map(item_map)
-    user_pos_item = data.groupby(user_col).agg(list).reset_index()
-    ground_truth = dict(zip(user_pos_item[user_col], user_pos_item[item_col]))
-
-    print("compute topk metrics")
-    out = topk_metrics(y_true=ground_truth, y_pred=match_res, topKs=[topk])
-    print(out)
+    #torch.save(user_embedding.data.cpu(), save_dir + "user_embedding.pth")
+    #torch.save(item_embedding.data.cpu(), save_dir + "item_embedding.pth")
+    match_evaluation(user_embedding, item_embedding, test_user, all_item)
 
 
 if __name__ == '__main__':
@@ -163,8 +132,8 @@ if __name__ == '__main__':
     parser.add_argument('--seed', type=int, default=2022)
 
     args = parser.parse_args()
-    main(args.dataset_path, args.model_name, args.epoch, args.learning_rate, args.batch_size, args.weight_decay,
-         args.device, args.save_dir, args.seed)
+    main(args.dataset_path, args.model_name, args.epoch, args.learning_rate, args.batch_size, args.weight_decay, args.device,
+         args.save_dir, args.seed)
 """
-python run_movielens.py --model_name dssm
+python run_ml_dssm.py
 """

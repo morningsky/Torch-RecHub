@@ -3,6 +3,7 @@ import torch
 import tqdm
 from sklearn.metrics import roc_auc_score
 from ..basic.callback import EarlyStopper
+from ..basic.loss_func import BPRLoss
 
 
 class MatchTrainer(object):
@@ -24,6 +25,7 @@ class MatchTrainer(object):
     def __init__(
         self,
         model,
+        mode=0,
         optimizer_fn=torch.optim.Adam,
         optimizer_params={
             "lr": 1e-3,
@@ -38,11 +40,19 @@ class MatchTrainer(object):
         model_path="./",
     ):
         self.model = model  #for uniform weights save method in one gpu or multi gpu
+        self.mode = mode
+        if mode == 0:  #point-wise loss, binary cross_entropy
+            self.criterion = torch.nn.BCELoss()  #default loss binary cross_entropy
+        elif mode == 1:  #pair-wise loss
+            self.criterion = BPRLoss()
+        elif mode == 2:  #list-wise loss, softmax
+            self.criterion = torch.nn.CrossEntropyLoss()
+        else:
+            raise ValueError("mode only contain value in %s, but got %s" % ([0, 1, 2], mode))
         self.optimizer = optimizer_fn(self.model.parameters(), **optimizer_params)  #default optimizer
         self.scheduler = None
         if scheduler_fn is not None:
             self.scheduler = scheduler_fn(self.optimizer, **scheduler_params)
-        self.criterion = torch.nn.BCELoss()  #default loss binary cross_entropy
         self.evaluate_fn = roc_auc_score  #default evaluate function
         self.n_epoch = n_epoch
         self.early_stopper = EarlyStopper(patience=earlystop_patience)
@@ -60,8 +70,16 @@ class MatchTrainer(object):
         for i, (x_dict, y) in enumerate(tk0):
             x_dict = {k: v.to(self.device) for k, v in x_dict.items()}  #tensor to GPU
             y = y.to(self.device)
-            y_pred = self.model(x_dict)
-            loss = self.criterion(y_pred, y.float())
+            if self.mode == 0:
+                y = y.float()  #torch._C._nn.binary_cross_entropy expected Float
+            else:
+                y = y.long()  #
+            if self.mode == 1:  #pair_wise
+                pos_score, neg_score = self.model(x_dict)
+                loss = self.criterion(pos_score, neg_score)
+            else:
+                y_pred = self.model(x_dict)
+                loss = self.criterion(y_pred, y)
             self.model.zero_grad()
             loss.backward()
             self.optimizer.step()
@@ -86,8 +104,7 @@ class MatchTrainer(object):
                 if self.early_stopper.stop_training(auc, self.model.state_dict()):
                     print(f'validation: best auc: {self.early_stopper.best_auc}')
                     self.model.load_state_dict(self.early_stopper.best_weights)
-                    torch.save(self.early_stopper.best_weights, os.path.join(self.model_path,
-                                                                             "model.pth"))  #save best auc model
+                    torch.save(self.early_stopper.best_weights, os.path.join(self.model_path, "model.pth"))  #save best auc model
                     break
             else:
                 #if no val data, we save weights in the last epoch
@@ -129,7 +146,6 @@ class MatchTrainer(object):
         model.load_state_dict(torch.load(os.path.join(model_path, "model.pth")))
         model = model.to(self.device)
         model.eval()
-        print(model.mode)
         predicts = []
         with torch.no_grad():
             tk0 = tqdm.tqdm(data_loader, desc="%s inference" % (mode), smoothing=0, mininterval=1.0)

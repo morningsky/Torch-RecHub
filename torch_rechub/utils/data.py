@@ -36,9 +36,12 @@ class PredictDataset(Dataset):
 
 class MatchDataGenerator(object):
 
-    def __init__(self, x, y):
+    def __init__(self, x, y=[]):
         super().__init__()
-        self.dataset = TorchDataset(x, y)
+        if len(y) != 0:
+            self.dataset = TorchDataset(x, y)
+        else:  #For pair-wise model, trained without given label
+            self.dataset = PredictDataset(x)
 
     def generate_dataloader(self, x_test_user, x_all_item, batch_size, num_workers=8):
         train_dataloader = DataLoader(self.dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
@@ -69,8 +72,7 @@ class DataGenerator(object):
             val_length = int(self.length * split_ratio[1])
             test_length = self.length - train_length - val_length
             print("the samples of train : val : test are  %d : %d : %d" % (train_length, val_length, test_length))
-            train_dataset, val_dataset, test_dataset = random_split(self.dataset,
-                                                                    (train_length, val_length, test_length))
+            train_dataset, val_dataset, test_dataset = random_split(self.dataset, (train_length, val_length, test_length))
         else:
             train_dataset = self.dataset
             val_dataset = TorchDataset(x_val, y_val)
@@ -229,3 +231,21 @@ def pad_sequences(sequences, maxlen=None, dtype='int32', padding='pre', truncati
         else:
             arr[idx, :len(trunc)] = trunc
     return arr
+
+
+def array_replace_with_dict(array, dic):
+    """Replace values in NumPy array based on dictionary.
+    Args:
+        array (np.array): a numpy array
+        dic (dict): a map dict
+
+    Returns:
+        np.array: array with replace
+    """
+    # Extract out keys and values
+    k = np.array(list(dic.keys()))
+    v = np.array(list(dic.values()))
+
+    # Get argsort indices
+    idx = k.argsort()
+    return v[idx[np.searchsorted(k, array, sorter=idx)]]

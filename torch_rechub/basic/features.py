@@ -33,15 +33,17 @@ class SparseFeature(object):
         name (str): feature's name.
         vocab_size (int): vocabulary size of embedding table.
         embed_dim (int): embedding vector's length
+        shared_with (str): the another feature name which this feature will shared with embedding.
     """
 
-    def __init__(self, name, vocab_size, embed_dim=None):
+    def __init__(self, name, vocab_size, embed_dim=None, shared_with=None):
         self.name = name
         self.vocab_size = vocab_size
         if embed_dim == None:
             self.embed_dim = get_auto_embedding_dim(vocab_size)
         else:
             self.embed_dim = embed_dim
+        self.shared_with = shared_with
 
 
 class DenseFeature(object):
