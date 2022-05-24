@@ -90,7 +90,7 @@ def main(dataset_path, model_name, epoch, learning_rate, batch_size, weight_deca
 
     #mode=1 means pair-wise learning
     trainer = MatchTrainer(model,
-                           mode=1,
+                           mode=2,
                            optimizer_params={
                                "lr": learning_rate,
                                "weight_decay": weight_decay
@@ -109,19 +109,19 @@ def main(dataset_path, model_name, epoch, learning_rate, batch_size, weight_deca
     print(user_embedding.shape, item_embedding.shape)
     #torch.save(user_embedding.data.cpu(), save_dir + "user_embedding.pth")
     #torch.save(item_embedding.data.cpu(), save_dir + "item_embedding.pth")
-    match_evaluation(user_embedding, item_embedding, test_user, all_item)
+    match_evaluation(user_embedding, item_embedding, test_user, all_item, topk=10)
 
 
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset_path', default="./data/ml-1m/ml-1m.csv")
+    parser.add_argument('--dataset_path', default="./data/ml-1m/ml-1m_sample.csv")
     parser.add_argument('--model_name', default='dssm')
-    parser.add_argument('--epoch', type=int, default=8)  #100
+    parser.add_argument('--epoch', type=int, default=1)  #10
     parser.add_argument('--learning_rate', type=float, default=1e-3)
     parser.add_argument('--batch_size', type=int, default=2048)  #4096
     parser.add_argument('--weight_decay', type=float, default=1e-6)
-    parser.add_argument('--device', default='cuda:0')  #cuda:0
+    parser.add_argument('--device', default='cpu')  #cuda:0
     parser.add_argument('--save_dir', default='./data/ml-1m/saved/')
     parser.add_argument('--seed', type=int, default=2022)
 

@@ -10,7 +10,7 @@ from torch_rechub.basic.metric import topk_metrics
 from collections import Counter
 
 
-def match_evaluation(user_embedding, item_embedding, test_user, all_item):
+def match_evaluation(user_embedding, item_embedding, test_user, all_item, topk=10):
     print("evaluate embedding matching on test data")
     annoy = Annoy(n_trees=10)
     annoy.fit(item_embedding)
@@ -19,7 +19,6 @@ def match_evaluation(user_embedding, item_embedding, test_user, all_item):
     print("matching for topk")
     user_map, item_map = np.load("./data/ml-1m/saved/raw_id_maps.npy", allow_pickle=True)
     match_res = collections.defaultdict(dict)
-    topk = 100
     for user_id, user_emb in zip(test_user["user_id"], user_embedding):
         items_idx, items_scores = annoy.query(v=user_emb, n=topk)  #the index of topk match items
         match_res[user_map[user_id]] = all_item["movie_id"][items_idx]

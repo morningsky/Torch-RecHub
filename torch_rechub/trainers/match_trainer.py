@@ -10,7 +10,8 @@ class MatchTrainer(object):
     """A general trainer for Matching/Retrieval
 
     Args:
-        model (nn.Module): any multi task learning model.
+        model (nn.Module): any matching model.
+        mode (int, optional): the training mode, `{0:point-wise, 1:pair-wise, 2:list-wise}`. Defaults to 0.
         optimizer_fn (torch.optim): optimizer function of pytorch (default = `torch.optim.Adam`).
         optimizer_params (dict): parameters of optimizer_fn.
         scheduler_fn (torch.optim.lr_scheduler) : torch scheduling class, eg. `torch.optim.lr_scheduler.StepLR`.

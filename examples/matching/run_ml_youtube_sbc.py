@@ -16,7 +16,7 @@ from torch_rechub.utils.data import df_to_dict, MatchDataGenerator
 from movielens_utils import match_evaluation, get_item_sample_weight
 
 
-def get_movielens_data(data_path, load_cache=True):
+def get_movielens_data(data_path, load_cache=False):
     data = pd.read_csv(data_path)
     data["cate_id"] = data["genres"].apply(lambda x: x.split("|")[0])
     sparse_features = ['user_id', 'movie_id', 'gender', 'age', 'occupation', 'zip', "cate_id"]
@@ -28,11 +28,9 @@ def get_movielens_data(data_path, load_cache=True):
         data[feature] = lbe.fit_transform(data[feature]) + 1
         feature_max_idx[feature] = data[feature].max() + 1
         if feature == user_col:
-            user_map = {encode_id + 1: raw_id for encode_id, raw_id in enumerate(lbe.classes_)
-                       }  #encode user id: raw user id
+            user_map = {encode_id + 1: raw_id for encode_id, raw_id in enumerate(lbe.classes_)}  #encode user id: raw user id
         if feature == item_col:
-            item_map = {encode_id + 1: raw_id for encode_id, raw_id in enumerate(lbe.classes_)
-                       }  #encode item id: raw item id
+            item_map = {encode_id + 1: raw_id for encode_id, raw_id in enumerate(lbe.classes_)}  #encode item id: raw item id
     np.save("./data/ml-1m/saved/raw_id_maps.npy", (user_map, item_map))
 
     sample_weight_map = get_item_sample_weight(data[item_col].tolist())
@@ -63,7 +61,6 @@ def get_movielens_data(data_path, load_cache=True):
     user_cols = ['user_id', 'gender', 'age', 'occupation', 'zip']  #sparse feature
     item_cols = ['movie_id', "cate_id"]  #sparse feature
 
-    print(x_train.keys())
     sample_weight_feature = [DenseFeature("sample_weight")]  #it is one of item feature
     user_features = [SparseFeature(name, vocab_size=feature_max_idx[name], embed_dim=16) for name in user_cols]
     user_features += [
@@ -74,8 +71,7 @@ def get_movielens_data(data_path, load_cache=True):
                         shared_with="movie_id")
     ]
     item_features = [
-        SparseFeature(feature_name, vocab_size=feature_max_idx[feature_name], embed_dim=16)
-        for feature_name in item_cols
+        SparseFeature(feature_name, vocab_size=feature_max_idx[feature_name], embed_dim=16) for feature_name in item_cols
     ]
 
     all_item = df_to_dict(item_profile)
@@ -87,8 +83,7 @@ def main(dataset_path, epoch, learning_rate, batch_size, weight_decay, device, s
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
     torch.manual_seed(seed)
-    user_features, item_features, sample_weight_feature, x_train, y_train, all_item, test_user = get_movielens_data(
-        dataset_path)
+    user_features, item_features, sample_weight_feature, x_train, y_train, all_item, test_user = get_movielens_data(dataset_path)
     dg = MatchDataGenerator(x=x_train, y=y_train)
 
     model = YoutubeSBC(user_features,
@@ -118,24 +113,24 @@ def main(dataset_path, epoch, learning_rate, batch_size, weight_decay, device, s
     #print(user_embedding.shape, item_embedding.shape)
     #torch.save(user_embedding.data.cpu(), save_dir + "user_embedding.pth")
     #torch.save(item_embedding.data.cpu(), save_dir + "item_embedding.pth")
-    match_evaluation(user_embedding, item_embedding, test_user, all_item)
+    match_evaluation(user_embedding, item_embedding, test_user, all_item, topk=10)
 
 
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset_path', default="./data/ml-1m/ml-1m.csv")
-    parser.add_argument('--epoch', type=int, default=8)  #100
+    parser.add_argument('--dataset_path', default="./data/ml-1m/ml-1m_sample.csv")
+    parser.add_argument('--epoch', type=int, default=1)  #8
     parser.add_argument('--learning_rate', type=float, default=1e-3)
     parser.add_argument('--batch_size', type=int, default=2048)  #4096
     parser.add_argument('--weight_decay', type=float, default=1e-6)
-    parser.add_argument('--device', default='cuda:0')  #cuda:0
+    parser.add_argument('--device', default='cpu')  #cuda:0
     parser.add_argument('--save_dir', default='./data/ml-1m/saved/')
     parser.add_argument('--seed', type=int, default=2022)
 
     args = parser.parse_args()
-    main(args.dataset_path, args.epoch, args.learning_rate, args.batch_size, args.weight_decay, args.device,
-         args.save_dir, args.seed)
+    main(args.dataset_path, args.epoch, args.learning_rate, args.batch_size, args.weight_decay, args.device, args.save_dir,
+         args.seed)
 """
 python run_ml_youtube_sbc.py
 """

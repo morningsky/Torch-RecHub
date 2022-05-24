@@ -1,5 +1,7 @@
 import sys
 
+from paddle import topk
+
 sys.path.append("../..")
 
 import os
@@ -16,7 +18,7 @@ from torch_rechub.utils.data import df_to_dict, MatchDataGenerator
 from movielens_utils import match_evaluation
 
 
-def get_movielens_data(data_path, load_cache=True):
+def get_movielens_data(data_path, load_cache=False):
     data = pd.read_csv(data_path)
     data["cate_id"] = data["genres"].apply(lambda x: x.split("|")[0])
     sparse_features = ['user_id', 'movie_id', 'gender', 'age', 'occupation', 'zip', "cate_id"]
@@ -115,19 +117,19 @@ def main(dataset_path, model_name, epoch, learning_rate, batch_size, weight_deca
     item_embedding = trainer.inference_embedding(model=model, mode="item", data_loader=item_dl, model_path=save_dir)
     #torch.save(user_embedding.data.cpu(), save_dir + "user_embedding.pth")
     #torch.save(item_embedding.data.cpu(), save_dir + "item_embedding.pth")
-    match_evaluation(user_embedding, item_embedding, test_user, all_item)
+    match_evaluation(user_embedding, item_embedding, test_user, all_item, topk=10)
 
 
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset_path', default="./data/ml-1m/ml-1m.csv")
+    parser.add_argument('--dataset_path', default="./data/ml-1m/ml-1m_sample.csv")
     parser.add_argument('--model_name', default='dssm')
-    parser.add_argument('--epoch', type=int, default=5)  #100x
+    parser.add_argument('--epoch', type=int, default=1)  #5
     parser.add_argument('--learning_rate', type=float, default=1e-4)
     parser.add_argument('--batch_size', type=int, default=2048)  #4096
     parser.add_argument('--weight_decay', type=float, default=1e-6)
-    parser.add_argument('--device', default='cuda:0')  #cuda:0
+    parser.add_argument('--device', default='cpu')  #cuda:0
     parser.add_argument('--save_dir', default='./data/ml-1m/saved/')
     parser.add_argument('--seed', type=int, default=2022)
 
