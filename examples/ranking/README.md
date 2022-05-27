@@ -84,19 +84,19 @@ train:按时间顺序排列的10天点击数据，约四千万样本。
 test:用于测试模型预测的1天广告数据，约四百六十万。
 由于Kaggle中的test缺少label，因此推荐使用avazu的划分方法，即把原始的训练集按照7:1:2进行划分。
 数据字段极其解释:
-｜字段名｜解释｜
-｜-----|-----|
+|字段名|解释|
+|-----|-----|
 |id|广告点击id，每个点击事件都有一个唯一的id，可以用来做广告点击跟踪|
 |click|广告是否被点击，1表示点击，0表示未点击|
 |hour|广告点击时间，格式为YYMMDDHH|
 |C1|广告类别1，用于区分广告类别|
 |banner_pos|广告位置|
 |site_id|广告所属站点id|
-|site_domain|广告所属站点域名｜
-|site_category|站点分类｜
+|site_domain|广告所属站点域名|
+|site_category|站点分类|
 |app_id|广告所属app id| 
-|app_domain|广告所属app域名｜
-|app_category|广告所属app分类｜
+|app_domain|广告所属app域名|
+|app_category|广告所属app分类|
 |device_id|广告所属设备id|
 |device_ip|广告所属设备ip|
 |device_model|广告所属设备型号|
@@ -105,14 +105,14 @@ test:用于测试模型预测的1天广告数据，约四百六十万。
 |C14-C21|匿名化的分类变量|
 ## 测试结果
 
-> 表格中score值，分类任务均为AUC，回归任务均为MSE
+> 表格中score值，分类任务均为AUC(越大越好)，回归任务均为MSE(越小越好)
 
 常见排序模型测试结果：
 
 | Model/Dataset | Criteo | Avazu | Taobao(CTR) |
 | ------------- | ------ | ----- | ----------- |
 | WideDeep      | 0.8083 |0.7533 |             |
-| DeepFM        | 0.8104 |       |             |
+| DeepFM        | 0.8104 |0.7579 |             |
 | DCN           |        |       |             |
 | xDeepFM       |        |       |             |
 
