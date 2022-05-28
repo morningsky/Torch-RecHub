@@ -154,4 +154,4 @@ class MatchTrainer(object):
                 x_dict = {k: v.to(self.device) for k, v in x_dict.items()}
                 y_pred = model(x_dict)
                 predicts.append(y_pred.data)
-        return torch.cat(predicts, axis=0)
+        return torch.cat(predicts, dim=0)
