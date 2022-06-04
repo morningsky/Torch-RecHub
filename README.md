@@ -12,6 +12,14 @@
 
 A Lighting Pytorch Framework for Recommendation Models, Easy-to-use and Easy-to-extend.
 
+#### 注意，目前本项目迁移至datawhale社区进行后续更新：
+
+##[前往最新地址](https://github.com/datawhalechina/torch-rechub)
+
+## [前往中文Wiki站](https://www.wolai.com/mincai/2qjdg3DPy1179e1vpcHZQC)
+
+
+
 ## 安装
 
 ```python
@@ -92,7 +100,4 @@ auc = ctr_trainer.evaluate(ctr_trainer.model, test_dataloader)
 > - 数据格式参考文件（100条）。
 > - 全量数据，统一的csv文件，提供高速网盘下载链接和原始数据链接。
 
-
-
-[初步规划TODO清单](https://user-images.githubusercontent.com/11856746/167436396-f9c5de5b-d341-4697-8b91-884d4ae552be.png)
 
